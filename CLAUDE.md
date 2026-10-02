@@ -33,8 +33,11 @@ it.
 - `emit.mjs` — the emitter: normalized config → Copilot CLI config under `$COPILOT_HOME`.
   **A placeholder** that writes an empty `mcp-config.json`; the real translation (BYOK
   provider, MCP servers, `AGENTS.md`) is issue #1.
-- `launch-copilot-cli.sh` — what tmux runs: `exec copilot` in the project directory. No
-  session resume yet.
+- `launch-copilot-cli.sh` — what tmux runs: `exec copilot` in the project directory. On
+  first boot it writes `$COPILOT_HOME/config.json` with the working directory in
+  `trustedFolders`, or the CLI opens on a folder-trust dialog that eats keystrokes (and
+  fails conformance). Only `config.json` works, and the CLI rewrites it with `//`
+  comments, so the emitter (strict JSON) must not manage it. No session resume yet.
 - `chart/` — the Helm chart registering the cluster-scoped `LanguageAgentRuntime` named
   `copilot-cli`.
 - `THIRD_PARTY_NOTICES.md` — the Copilot CLI is proprietary and redistributed under the

@@ -1,17 +1,17 @@
 apiVersion: v2
-name: opencode
-description: opencode LanguageAgentRuntime for the Language Operator
+name: copilot-cli
+description: GitHub Copilot CLI LanguageAgentRuntime for the Language Operator
 type: application
-version: 0.1.7
-appVersion: "0.1.7"
+version: 0.1.0
+appVersion: "0.1.0"
 keywords:
   - ai
   - llm
   - agents
-  - opencode
-home: https://github.com/language-operator/opencode-adapter
+  - copilot
+home: https://github.com/language-operator/copilot-cli-adapter
 sources:
-  - https://github.com/language-operator/opencode-adapter
+  - https://github.com/language-operator/copilot-cli-adapter
 maintainers:
   - name: James Ryan
     email: james@theryans.io

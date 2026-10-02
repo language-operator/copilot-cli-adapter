@@ -1,19 +1,20 @@
 # CLAUDE.md
 
-Guidance for working in the `opencode-adapter` repository.
+Guidance for working in the `copilot-cli-adapter` repository. Created from the
+`opencode-adapter` template.
 
 ## What this is
 
 A [Language Operator](https://github.com/language-operator) **runtime** that runs the
-**opencode** TUI as a Kubernetes workload. The TUI runs inside tmux and is fronted by an
-xterm.js / WebSocket terminal, so working with the agent feels like a real terminal
-session.
+**GitHub Copilot CLI** TUI as a Kubernetes workload. The TUI runs inside tmux and is
+fronted by an xterm.js / WebSocket terminal, so working with the agent feels like a real
+terminal session.
 
 It is a **thin layer over
 [`coding-runtime`](https://github.com/language-operator/coding-runtime)**. The base owns
 the OS layer, the web terminal (node-pty over a WebSocket, with a cross-origin guard and
 a keepalive), `tini`, and the ETL that turns the operator's `/etc/agent/config.yaml` into
-a normalized config. This repo adds the opencode CLI plus three files that describe it to
+a normalized config. This repo adds the Copilot CLI plus three files that describe it to
 the base.
 
 One container, running the base entrypoint: resolve the environment, seed config, serve.
@@ -23,19 +24,26 @@ it.
 
 ## Key files
 
-- `Dockerfile` — `FROM ${BASE}` plus one `npm install -g opencode-ai`. `ARG BASE` pins
-  the base by **tag and digest**, and is the only place the base version appears.
-- `runtime.json` — the manifest: where config goes, the serving surface, how tmux
-  launches the TUI. **A verbatim copy** of upstream `examples/opencode/runtime.json`.
-- `emit.mjs` — the emitter: normalized config → `opencode.jsonc` (provider, model, MCP
-  servers, instructions). **Also a verbatim copy.** Do not edit either file here; they
-  move with the base, via `/update-dependencies`.
-- `launch-opencode.sh` — what tmux runs. Opens the project directory, and passes
-  `--continue` once the workspace holds a session store so a slept agent resumes instead
-  of opening blank. The guard matters: with nothing to resume, opencode's TUI leaves a
-  placeholder session and shows an unexplained error toast.
+- `Dockerfile` — `FROM ${BASE}` plus one `npm install -g @github/copilot`, which also
+  copies the CLI's license to `/usr/share/doc/github-copilot-cli/`. `ARG BASE` pins the
+  base by **tag and digest**, and is the only place the base version appears.
+- `runtime.json` — the manifest: `COPILOT_HOME=${STATE_DIR}/copilot`, the serving
+  surface, how tmux launches the TUI. Owned here: coding-runtime ships no copilot example
+  to copy from.
+- `emit.mjs` — the emitter: normalized config → Copilot CLI config under `$COPILOT_HOME`.
+  **A placeholder** that writes an empty `mcp-config.json`; the real translation (BYOK
+  provider, MCP servers, `AGENTS.md`) is issue #1.
+- `launch-copilot-cli.sh` — what tmux runs: `exec copilot` in the project directory. On
+  first boot it writes `$COPILOT_HOME/config.json` with the working directory in
+  `trustedFolders`, or the CLI opens on a folder-trust dialog that eats keystrokes (and
+  fails conformance). Only `config.json` works, and the CLI rewrites it with `//`
+  comments, so the emitter (strict JSON) must not manage it. No session resume yet.
 - `chart/` — the Helm chart registering the cluster-scoped `LanguageAgentRuntime` named
-  `opencode`.
+  `copilot-cli`.
+- `THIRD_PARTY_NOTICES.md` — the Copilot CLI is proprietary and redistributed under the
+  GitHub Copilot CLI License, which allows it only unmodified, with its license included,
+  and inside a service that adds material functionality. Keep the image's license copy and
+  never patch the CLI.
 - `.github/workflows/` — `test.yaml`, `build-image.yaml`, `release-chart.yaml`.
 
 ## Testing
@@ -44,17 +52,17 @@ it.
   mode. The suite is **extracted from the image under test**, so the checks always match
   the runtime being checked; it runs the container the way the operator does (read-only
   root, uid 1000, all capabilities dropped). Needs Docker.
-- `make lint-chart` — `helm lint chart` plus `helm template opencode chart`.
+- `make lint-chart` — `helm lint chart` plus `helm template copilot-cli chart`.
 - There is **no linter and no unit-test suite**. CI correctness is exactly the two
   `test.yaml` jobs: `image-test` and `chart-lint`.
 - Changes to the terminal, the emitter or the manifest are mostly **not** covered by
-  anything local — the conformance suite checks the runtime contract, not opencode's
+  anything local — the conformance suite checks the runtime contract, not the Copilot CLI's
   behaviour. Say so plainly rather than implying a green build proves more than it does.
 - The PR title must be a conventional commit (`feat:`, `fix:`, `chore:`, `docs:`).
 
 ## Build & dev deploy
 
-- `make build` — build `ghcr.io/language-operator/opencode-adapter:<git-sha>` + `:latest`.
+- `make build` — build `ghcr.io/language-operator/copilot-cli-adapter:<git-sha>` + `:latest`.
 - `make dev` — build, import into local k3s, and `helm upgrade` the runtime (requires the
   `language-operator` chart / `LanguageAgentRuntime` CRD installed first).
 - `make publish` — push image tags to ghcr.io. `make uninstall` — remove the release.
@@ -76,7 +84,7 @@ Two rules the hard way:
   as `main`, which no `requires.codingRuntime` range can satisfy, and which fails the
   conformance suite's own semver check. Released tags only.
 
-Bumping the base, the opencode CLI or the GitHub Actions is `/update-dependencies`, not
+Bumping the base, the Copilot CLI or the GitHub Actions is `/update-dependencies`, not
 `/release` — they are separate decisions.
 
 ## Issue-driven workflow
